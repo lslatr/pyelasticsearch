@@ -109,7 +109,7 @@ Test adding with automatic id generation
 
 __author__ = 'Robert Eanes'
 __all__ = ['ElasticSearch']
-__version__ = (0, 0, 3)
+__version__ = (0, 0, 7)
 
 def get_version():
     return "%s.%s.%s" % __version__
@@ -119,18 +119,13 @@ import cjson
 
 from urllib import urlencode
 import logging
+log = logging.getLogger('pyelasticsearch')
+
 import requests
 
 
 class ElasticSearchError(Exception):
     pass
-
-
-
-class NullHandler(logging.Handler):
-    def emit(self, record):
-        pass
-
 
 
 class ElasticSearch(object):
@@ -145,19 +140,6 @@ class ElasticSearch(object):
 
         if self.url.endswith('/'):
             self.url = self.url[:-1]
-
-    def setup_logging(self):
-        """
-        Sets up the logging.
-
-        Done as a method so others can override as needed without complex
-        setup.
-        """
-        log = logging.getLogger('pyelasticsearch')
-        null = NullHandler()
-        log.addHandler(null)
-        log.setLevel(logging.ERROR)
-        return log
 
     def _make_path(self, path_components):
         """
@@ -187,12 +169,12 @@ class ElasticSearch(object):
         if not hasattr(self.session, method.lower()):
             raise ElasticSearchError("No such HTTP Method '%s'!" % method.lower())
 
-        logging.debug("making %s request to path: %s %s with body: %s" % (method, url, path, kwargs.get('data', {})))
+        log.debug("making %s request to path: %s %s with body: %s" % (method, url, path, kwargs.get('data', {})))
         req_method = getattr(self.session, method.lower())
         resp = req_method(url, **kwargs)
-        logging.debug("response status: %s" % resp.status_code)
+        log.debug("response status: %s" % resp.status_code)
         prepped_response = self._prep_response(resp.content)
-        logging.debug("got response %s" % prepped_response)
+        log.debug("got response %s" % prepped_response)
         return prepped_response
 
     def _prep_request(self, body):
@@ -215,6 +197,7 @@ class ElasticSearch(object):
         querystring_args = query_params
         if query:
             querystring_args['q'] = query
+
         path = self._make_path([','.join(indexes), ','.join(doc_types),query_type])
         response = self._send_request('GET', path, body, querystring_args)
         return response
