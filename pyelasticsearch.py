@@ -114,12 +114,8 @@ __version__ = (0, 0, 3)
 def get_version():
     return "%s.%s.%s" % __version__
 
-try:
-    # For Python < 2.6 or people using a newer version of simplejson
-    import simplejson as json
-except ImportError:
-    # For Python >= 2.6
-    import json
+
+import cjson
 
 from urllib import urlencode
 import logging
@@ -142,9 +138,10 @@ class ElasticSearch(object):
     ElasticSearch connection object.
     """
 
-    def __init__(self, url, timeout=60):
+    def __init__(self, url, timeout=60, config={}):
         self.url = url
         self.timeout = timeout
+        self.session = requests.session(config=config)
 
         if self.url.endswith('/'):
             self.url = self.url[:-1]
@@ -187,11 +184,11 @@ class ElasticSearch(object):
         if body:
             kwargs['data'] = self._prep_request(body)
 
-        if not hasattr(requests, method.lower()):
+        if not hasattr(self.session, method.lower()):
             raise ElasticSearchError("No such HTTP Method '%s'!" % method.lower())
 
         logging.debug("making %s request to path: %s %s with body: %s" % (method, url, path, kwargs.get('data', {})))
-        req_method = getattr(requests, method.lower())
+        req_method = getattr(self.session, method.lower())
         resp = req_method(url, **kwargs)
         logging.debug("response status: %s" % resp.status_code)
         prepped_response = self._prep_response(resp.content)
@@ -202,13 +199,13 @@ class ElasticSearch(object):
         """
         Encodes body as json.
         """
-        return json.dumps(body)
+        return cjson.encode(body)
 
     def _prep_response(self, response):
         """
         Parses json to a native python object.
         """
-        return json.loads(response)
+        return cjson.decode(response)
 
     def _query_call(self, query_type, query, body=None, indexes=['_all'], doc_types=[], **query_params):
         """
@@ -226,7 +223,7 @@ class ElasticSearch(object):
 
     def index(self, doc, index, doc_type, id=None, force_insert=False):
         """
-    	Index a typed JSON document into a specific index and make it searchable.
+        Index a typed JSON document into a specific index and make it searchable.
         """
         if force_insert:
             querystring_args = {'op_type':'create'}

@@ -19,9 +19,11 @@ setup(
     ],
     requires=[
         'requests(>=0.9.0)',
+        'cjson',
     ],
     install_requires=[
         'requests>=0.9.0',
     ],
-    url = 'http://github.com/rhec/pyelasticsearch'
+    url = 'http://github.com/rhec/pyelasticsearch',
+    test_suite = 'tests'
 )
