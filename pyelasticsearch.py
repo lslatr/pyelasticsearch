@@ -114,13 +114,13 @@ __version__ = (0, 0, 7)
 def get_version():
     return "%s.%s.%s" % __version__
 
-
-import cjson
+import types
 
 from urllib import urlencode
 import logging
 log = logging.getLogger('pyelasticsearch')
 
+import cjson
 import requests
 
 
@@ -169,10 +169,10 @@ class ElasticSearch(object):
         if not hasattr(self.session, method.lower()):
             raise ElasticSearchError("No such HTTP Method '%s'!" % method.lower())
 
-        log.debug("making %s request to path: %s %s with body: %s" % (method, url, path, kwargs.get('data', {})))
+        log.info("making %s request to path: %s %s with body: %s" % (method, url, path, kwargs.get('data', {})))
         req_method = getattr(self.session, method.lower())
         resp = req_method(url, **kwargs)
-        log.debug("response status: %s" % resp.status_code)
+        log.info("response status: %s" % resp.status_code)
         prepped_response = self._prep_response(resp.content)
         log.debug("got response %s" % prepped_response)
         return prepped_response
@@ -181,7 +181,10 @@ class ElasticSearch(object):
         """
         Encodes body as json.
         """
-        return cjson.encode(body)
+        if type(body) in types.StringTypes:
+            return body
+        else:
+            return cjson.encode(body)
 
     def _prep_response(self, response):
         """
